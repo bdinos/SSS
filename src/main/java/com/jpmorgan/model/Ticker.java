@@ -1,17 +1,23 @@
 package com.jpmorgan.model;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
+
 import org.apache.commons.lang.Validate;
+
+import com.jpmorgan.StockExchange;
 
 /**
  * Model class that represents a stock's ticker.
  * @author bdinos
  */
 public class Ticker {
+	private final static MathContext MATH_CTX = StockExchange.MATH_CTX;
 	public final Stock stock;
-	private double lastDividend;
-	private double fixedDividend; //is a fraction
-	private double parValue;
-	private double tickerPrice;
+	private BigDecimal lastDividend;
+	private BigDecimal fixedDividend; //is a fraction
+	private BigDecimal parValue;
+	private BigDecimal tickerPrice = BigDecimal.ZERO;
 
 	/**
   	 * Constructor.
@@ -19,7 +25,7 @@ public class Ticker {
   	 * @param lastDividend the stock's last dividend
   	 * @param parValue the stock's par value
   	 */
-	public Ticker(Stock stock, double lastDividend, double parValue) {
+	public Ticker(Stock stock, BigDecimal lastDividend, BigDecimal parValue) {
 		this.stock = stock;
 		setLastDividend(lastDividend);
 		setParValue(parValue);
@@ -32,7 +38,7 @@ public class Ticker {
   	 * @param fixedDividend the stock's fixed dividend
   	 * @param parValue the stock's par value
   	 */
-	public Ticker(Stock stock, double lastDividend, double fixedDividend, double parValue) {
+	public Ticker(Stock stock, BigDecimal lastDividend, BigDecimal fixedDividend, BigDecimal parValue) {
 		this(stock, lastDividend, parValue);
 		setFixedDividend(fixedDividend);
 	}
@@ -41,10 +47,10 @@ public class Ticker {
   	 * Calculate the PE ratio of this ticker.
   	 * @return the PE ratio of this ticker
   	 */
-	public double getPriceEarningsRatio() throws EPSNotAvailableException {		
-		double eps = getEarningsPerShare();
-		if(eps > 0.0) {
-			return tickerPrice / eps;	
+	public BigDecimal getPriceEarningsRatio() throws EPSNotAvailableException {		
+		BigDecimal eps = getEarningsPerShare();
+		if(eps.signum() > 0) {
+			return tickerPrice.divide(eps, MATH_CTX);	
 		}
 		throw new EPSNotAvailableException();
 	}
@@ -53,17 +59,17 @@ public class Ticker {
   	 * Calculate the EPS of this ticker.
   	 * @return the EPS of this ticker
   	 */
-	private double getEarningsPerShare() {
+	private BigDecimal getEarningsPerShare() {
 		// we approximate it roughly to lastDividend
 		return lastDividend;
 	}
 
-	private double getDividend() {
-		double dividend;
+	private BigDecimal getDividend() {
+		BigDecimal dividend;
 		if(stock.type == Stock.Type.COMMON){
 			dividend = lastDividend;
 		} else {
-			dividend = fixedDividend * parValue;
+			dividend = fixedDividend.multiply(parValue, MATH_CTX);
 		}
 		return dividend;
 	}
@@ -72,46 +78,46 @@ public class Ticker {
   	 * Calculate the dividend yield of this ticker.
   	 * @return the dividend yield of this ticker
   	 */
-	public double getDividendYield() throws TickerPriceNotAvailableException {
-		if(tickerPrice <= 0.0){
+	public BigDecimal getDividendYield() throws TickerPriceNotAvailableException {
+		if(tickerPrice.signum() <= 0){
 			throw new TickerPriceNotAvailableException();
 		}
-		return getDividend() / tickerPrice;
+		return getDividend().divide(tickerPrice, MATH_CTX);
 	}
 
-	public double getLastDividend() {
+	public BigDecimal getLastDividend() {
 		return lastDividend;
 	}
 
-	public void setLastDividend(double lastDividend) {
-		Validate.isTrue(lastDividend >= 0.0);
+	public void setLastDividend(BigDecimal lastDividend) {
+		Validate.isTrue(lastDividend.signum() >= 0);
 		this.lastDividend = lastDividend;
 	}
 
-	public double getFixedDividend() {
+	public BigDecimal getFixedDividend() {
 		return fixedDividend;
 	}
 
-	public void setFixedDividend(double fixedDividend) {
-		Validate.isTrue(fixedDividend > 0.0);
+	public void setFixedDividend(BigDecimal fixedDividend) {
+		Validate.isTrue(fixedDividend.signum() > 0);
 		this.fixedDividend = fixedDividend;
 	}
 
-	public double getParValue() {
+	public BigDecimal getParValue() {
 		return parValue;
 	}
 
-	public void setParValue(double parValue) {
-		Validate.isTrue(parValue > 0.0);
+	public void setParValue(BigDecimal parValue) {
+		Validate.isTrue(parValue.signum() > 0);
 		this.parValue = parValue;
 	}
 
-	public double getTickerPrice() {
+	public BigDecimal getTickerPrice() {
 		return tickerPrice;
 	}
 
-	public void setTickerPrice(double tickerPrice) {
-		Validate.isTrue(tickerPrice > 0.0);
+	public void setTickerPrice(BigDecimal tickerPrice) {
+		Validate.isTrue(tickerPrice.signum() > 0);
 		this.tickerPrice = tickerPrice;
 	}
 	

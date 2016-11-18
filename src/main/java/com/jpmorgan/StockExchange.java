@@ -1,5 +1,8 @@
 package com.jpmorgan;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -27,6 +30,8 @@ import com.jpmorgan.model.Trade;
  * @author bdinos
  */
 public class StockExchange {
+	public static final MathContext MATH_CTX = new MathContext(2, RoundingMode.HALF_UP);
+	
 	private final HashMap<Stock, Ticker> tickersByStock = new HashMap<>();
 	
 	private final TreeSet<Trade> trades = new TreeSet<>( (t1, t2) -> {
@@ -47,19 +52,19 @@ public class StockExchange {
   	 * Calculate the GBCE All Share Index, as the geometric mean of all stock prices.
   	 * @return the GBCE All Share Index
   	 */
-	public double getGBCEAllShareIndex() {
+	public BigDecimal getGBCEAllShareIndex() {
 		Set<Trade> latestTrades = getLatestTrades(15);
-		Collection<Double> prices = new ArrayList<>();
+		Collection<BigDecimal> prices = new ArrayList<>();
 		for(Ticker ticker: tickersByStock.values()) {
 			try {
-				double price = getStockPrice(ticker.stock, latestTrades);
+				BigDecimal price = getStockPrice(ticker.stock, latestTrades);
 				prices.add(price);
 			} catch (NotEnoughDataPointsException e) {
 				//do nothing
 			}
 		}
-		double[] pricesArr = prices.stream().mapToDouble(i->i).toArray();
-		return StatUtils.geometricMean(pricesArr);
+		double[] pricesArr = prices.stream().mapToDouble(i-> i.doubleValue()).toArray();
+		return BigDecimal.valueOf(StatUtils.geometricMean(pricesArr));
 	}
 	
 	/**
@@ -69,7 +74,7 @@ public class StockExchange {
   	 * @return the stock's price
   	 * @throws NotEnoughDataPointsException if not enough trade data is available in order to perform the calculation
   	 */
-	public double getStockPrice(Stock stock) throws NotEnoughDataPointsException {
+	public BigDecimal getStockPrice(Stock stock) throws NotEnoughDataPointsException {
 		Set<Trade> latestTrades = getLatestTrades(15);
 		return getStockPrice(stock, latestTrades);
 	}
@@ -81,7 +86,7 @@ public class StockExchange {
   	 * @throws TickerNotFoundException if the stock has not a ticker associated
   	 * @throws TickerPriceNotAvailableException if the stock has not been marketed yet
   	 */
-	public double getStockDividendYield(Stock stock) throws TickerNotFoundException, TickerPriceNotAvailableException {
+	public BigDecimal getStockDividendYield(Stock stock) throws TickerNotFoundException, TickerPriceNotAvailableException {
 		Ticker ticker = tickersByStock.get(stock);
 		if(ticker == null) {
 			throw new TickerNotFoundException(stock);
@@ -96,8 +101,8 @@ public class StockExchange {
   	 * @throws TickerNotFoundException if the stock has not a ticker associated
   	 * @throws TickerPriceNotAvailableException if the stock has not been marketed yet
   	 */
-	public double getStockDividendYieldAsPerc(Stock stock) throws TickerNotFoundException, TickerPriceNotAvailableException{
-		return getStockDividendYield(stock) * 100.0;
+	public BigDecimal getStockDividendYieldAsPerc(Stock stock) throws TickerNotFoundException, TickerPriceNotAvailableException{
+		return getStockDividendYield(stock).multiply(BigDecimal.valueOf(100.0));
 	}
 	
 	/**
@@ -107,7 +112,7 @@ public class StockExchange {
   	 * @throws TickerNotFoundException if the stock has not a ticker associated
   	 * @throws EPSNotAvailableException if no data is available to calculate the EPS
   	 */
-	public double getStockPriceEarningsRatio(Stock stock) throws TickerNotFoundException, EPSNotAvailableException {
+	public BigDecimal getStockPriceEarningsRatio(Stock stock) throws TickerNotFoundException, EPSNotAvailableException {
 		Ticker ticker = tickersByStock.get(stock);
 		if(ticker == null) {
 			throw new TickerNotFoundException(stock);
@@ -116,29 +121,29 @@ public class StockExchange {
 	}
 	
 	private static class Accumulator {
-        double amount;
+		BigDecimal amount = BigDecimal.ZERO;
         long count;
         
-		public double getWeightedAverage() throws NotEnoughDataPointsException {
+		public BigDecimal getWeightedAverage() throws NotEnoughDataPointsException {
 			if(count > 0) {
-				return amount / count;
+				return amount.divide(BigDecimal.valueOf(count), MATH_CTX);
 			}
 			throw new NotEnoughDataPointsException();
 		}
 		
 		Accumulator accumulate(Trade trade) {
-			amount += trade.sharesQuantity * trade.price;
+			amount = amount.add(BigDecimal.valueOf(trade.sharesQuantity).multiply(trade.price, MATH_CTX));
 			count += trade.sharesQuantity;
 			return this;
 		}
 		
 		void combine(Accumulator box) {
-			amount += box.amount;
+			amount = amount.add(box.amount);
 			count += box.count;
 		}
     }
 	
-	private double getStockPrice(Stock stock, Set<Trade> latestTrades) throws NotEnoughDataPointsException {
+	private BigDecimal getStockPrice(Stock stock, Set<Trade> latestTrades) throws NotEnoughDataPointsException {
 		Stream<Trade> tradeStream = latestTrades.stream().filter( trade -> trade.stock == stock );
 		return tradeStream.collect(Accumulator::new, Accumulator::accumulate, Accumulator::combine).getWeightedAverage();
 	}

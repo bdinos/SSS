@@ -1,5 +1,6 @@
 package com.jpmorgan.model;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 import org.apache.commons.lang.Validate;
@@ -13,9 +14,9 @@ public class Trade {
 	public final Stock stock;
 	public final TradeIndicator tradeIndicator;
 	public final int sharesQuantity;
-	public final double price;
+	public final BigDecimal price;
 	
-	private Trade(Instant timestamp, Stock stock, TradeIndicator tradeIndicator, int sharesQuantity, double price) {
+	private Trade(Instant timestamp, Stock stock, TradeIndicator tradeIndicator, int sharesQuantity, BigDecimal price) {
 		Validate.notNull(timestamp);
 		this.timestamp = timestamp;
 		Validate.notNull(stock);
@@ -24,11 +25,11 @@ public class Trade {
 		this.tradeIndicator = tradeIndicator;
 		Validate.isTrue(sharesQuantity > 0);
 		this.sharesQuantity = sharesQuantity;
-		Validate.isTrue(price > 0.0);
+		Validate.isTrue(price.signum() > 0);
 		this.price = price;
 	}
 	
-	private Trade(Stock stock, TradeIndicator tradeIndicator, int sharesQuantity, double price) { 
+	private Trade(Stock stock, TradeIndicator tradeIndicator, int sharesQuantity, BigDecimal price) { 
 		this(Instant.now(), stock, tradeIndicator, sharesQuantity, price);
 	}
 
@@ -39,7 +40,7 @@ public class Trade {
   	 * @param price the price of the shares
   	 * @return the trade object
   	 */
-	public static Trade buy(Stock stock, int sharesQuantity, double price) {
+	public static Trade buy(Stock stock, int sharesQuantity, BigDecimal price) {
 		return new Trade(stock, TradeIndicator.BUY, sharesQuantity, price);
 	}
 	
@@ -50,7 +51,7 @@ public class Trade {
   	 * @param price the price of the shares
   	 * @return the trade object
   	 */
-	public static Trade sell(Stock stock, int sharesQuantity, double price) {
+	public static Trade sell(Stock stock, int sharesQuantity, BigDecimal price) {
 		return new Trade(stock, TradeIndicator.SELL, sharesQuantity, price);
 	}
 	
@@ -62,7 +63,7 @@ public class Trade {
   	 * @param price the price of the shares
   	 * @return the trade object
   	 */
-	public static Trade buy(Instant timestamp, Stock stock, int sharesQuantity, double price) {
+	public static Trade buy(Instant timestamp, Stock stock, int sharesQuantity, BigDecimal price) {
 		return new Trade(timestamp, stock, TradeIndicator.BUY, sharesQuantity, price);
 	}
 	
@@ -74,7 +75,7 @@ public class Trade {
   	 * @param price the price of the shares
   	 * @return the trade object
   	 */
-	public static Trade sell(Instant timestamp, Stock stock, int sharesQuantity, double price) {
+	public static Trade sell(Instant timestamp, Stock stock, int sharesQuantity, BigDecimal price) {
 		return new Trade(timestamp, stock, TradeIndicator.SELL, sharesQuantity, price);
 	}
 
