@@ -20,6 +20,10 @@ import com.jpmorgan.model.Ticker.EPSNotAvailableException;
 import com.jpmorgan.model.Ticker.TickerPriceNotAvailableException;
 import com.jpmorgan.model.Trade;
 
+/**
+ * Unit tests for the class {@link StockExchange}
+ * @author bdinos
+ */
 public class StockExchangeTest {
 	private final static MathContext MATH_CTX = StockExchange.MATH_CTX;
 	
